@@ -345,10 +345,14 @@ app.get("/api/scripts/:id", h(async (req, res) => {
 
 // ------------------------------------------------------------ boot
 
+export default app;
+
 const PORT = process.env.PORT || 3040;
-app.listen(PORT, () => {
-  console.log(`ReelForge running → http://localhost:${PORT}`);
-  if (!process.env.ANTHROPIC_API_KEY && !process.env.ANTHROPIC_AUTH_TOKEN) {
-    console.log("⚠ No ANTHROPIC_API_KEY set — the UI will load, but AI calls will fail until you set it.");
-  }
-});
+if (!process.env.VERCEL) {
+  app.listen(PORT, () => {
+    console.log(`ReelForge running → http://localhost:${PORT}`);
+    if (!process.env.ANTHROPIC_API_KEY && !process.env.ANTHROPIC_AUTH_TOKEN) {
+      console.log("⚠ No ANTHROPIC_API_KEY set — the UI will load, but AI calls will fail until you set it.");
+    }
+  });
+}
