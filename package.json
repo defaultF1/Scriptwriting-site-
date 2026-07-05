@@ -1,0 +1,17 @@
+{
+  "name": "reelforge",
+  "version": "1.0.0",
+  "description": "AI wrapper for Instagram Reel scripts: learns your niche from 20+ sample scripts, researches trending AI/tech topics on X and Reddit, classifies them, and writes scripts in your voice (10 hooks + common body + visual ideas).",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.39.0",
+    "express": "^4.21.0",
+    "mammoth": "^1.8.0",
+    "multer": "^1.4.5-lts.1",
+    "xlsx": "^0.18.5"
+  }
+}

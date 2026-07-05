@@ -1,0 +1,1239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ReelForge — your reel script engine</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:wght@400;500;600;700&family=Courier+Prime:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet" />
+  <style>
+  /* ============================================================
+     ReelForge — "The Call Sheet" theme
+     warm paper · ink black · burnt-orange stamp · courier labels
+     ============================================================ */
+  :root {
+    --paper: #eee8db; --panel: #faf7ef; --panel2: #fffdf7;
+    --ink: #1c1a16; --ink2: #3d3a33;
+    --muted: #5f594e; --faint: #8d867a;
+    --border: #d8d0bf; --border2: #c9c1b1; --border3: #e3dccb;
+    --accent: #b3541e; --accent-soft: rgba(179,84,30,0.08);
+    --green: #1c6e5c; --green-soft: rgba(28,110,92,0.07);
+    --c-ai: #b3541e; --c-tech: #2e5e8c; --c-auto: #8c6a1d;
+    --c-agents: #6b4a8c; --c-robot: #1c6e5c; --c-future: #a83a5f;
+    --font-display: "Anton", "Arial Narrow", sans-serif;
+    --font-ui: "Archivo", "Segoe UI", system-ui, sans-serif;
+    --font-mono: "Courier Prime", "Courier New", monospace;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    font-family: var(--font-ui);
+    background: var(--paper);
+    color: var(--ink);
+    font-size: 15px;
+    line-height: 1.5;
+  }
+  ::selection { background: var(--accent); color: #fff; }
+  ::-webkit-scrollbar { width: 10px; height: 12px; }
+  ::-webkit-scrollbar-track { background: var(--paper); }
+  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 6px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--faint); }
+
+  @keyframes rec { 0%,100% { opacity: 1; } 50% { opacity: .2; } }
+  @keyframes marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+  @keyframes rise { from { opacity: 0; transform: translateY(10px); } }
+  @keyframes eq { 0%,100% { transform: scaleY(.35); } 50% { transform: scaleY(1); } }
+
+  /* ------- view routing (body classes set by app.js) ------- */
+  body.booting .landing, body.booting .auth-screen, body.booting .app { display: none; }
+  body.unauthed .app { display: none; }
+  body.unauthed .auth-screen { display: none; }
+  body.unauthed.authing .auth-screen { display: flex; }
+  body.unauthed.authing .landing { display: none; }
+  body.authed .landing, body.authed .auth-screen { display: none; }
+
+  /* ------- connection banner ------- */
+  .conn-banner {
+    display: none;
+    position: sticky; top: 0; z-index: 40;
+    background: var(--accent); color: #fff;
+    font-family: var(--font-mono); font-size: 12px;
+    padding: 10px 18px; text-align: center;
+  }
+  body.offline .conn-banner { display: block; }
+
+  /* ------- brand mark (clapper-play) ------- */
+  .mark { width: 30px; height: 30px; background: var(--ink); border-radius: 7px; overflow: hidden; display: flex; flex-direction: column; flex-shrink: 0; }
+  .mark i { height: 9px; background: repeating-linear-gradient(-55deg, var(--accent) 0 6px, var(--ink) 6px 12px); border-bottom: 1px solid #3d3a33; }
+  .mark s { flex: 1; display: flex; align-items: center; justify-content: center; text-decoration: none; }
+  .mark s::after { content: ""; width: 0; height: 0; border-left: 9px solid #efe9dc; border-top: 5.5px solid transparent; border-bottom: 5.5px solid transparent; margin-left: 2px; }
+  .mark.paper { background: #efe9dc; }
+  .mark.paper i { background: repeating-linear-gradient(-55deg, var(--accent) 0 6px, #efe9dc 6px 12px); border-bottom: none; }
+  .mark.paper s::after { border-left-color: var(--ink); }
+  .brand-name { font-family: var(--font-display); font-size: 21px; letter-spacing: .5px; }
+  .brand-name em { font-style: normal; color: var(--accent); }
+
+  /* ============================================================
+     LANDING PAGE
+     ============================================================ */
+  .lp-nav {
+    position: sticky; top: 0; z-index: 30;
+    background: rgba(238,232,219,.92); backdrop-filter: blur(8px);
+    border-bottom: 2px solid var(--ink);
+    display: flex; align-items: center; gap: 26px;
+    padding: 0 34px; height: 62px;
+  }
+  .lp-nav .brand { display: flex; align-items: center; gap: 11px; }
+  .lp-nav .spacer { flex: 1; }
+  .lp-nav a { color: var(--muted); text-decoration: none; font-size: 13.5px; font-weight: 500; }
+  .lp-nav a:hover { color: var(--ink); }
+
+  .btn-ink {
+    background: var(--ink); color: #efe9dc; border: none;
+    padding: 11px 20px; font-family: var(--font-ui); font-weight: 700; font-size: 13.5px;
+    box-shadow: 3px 3px 0 var(--accent); cursor: pointer; transition: all .12s;
+  }
+  .btn-ink:hover { transform: translate(-1px,-1px); box-shadow: 4px 4px 0 var(--accent); }
+  .btn-flame {
+    background: var(--accent); color: #fff; border: none;
+    padding: 15px 28px; font-family: var(--font-ui); font-weight: 700; font-size: 15px;
+    box-shadow: 4px 4px 0 var(--ink); cursor: pointer; transition: all .12s;
+  }
+  .btn-flame:hover { transform: translate(-1px,-1px); box-shadow: 5px 5px 0 var(--ink); }
+
+  .lp-hero {
+    display: grid; grid-template-columns: 1.1fr .9fr; gap: 40px; align-items: center;
+    padding: 74px 60px 80px; max-width: 1240px; margin: 0 auto;
+  }
+  .kicker {
+    font-family: var(--font-mono); font-size: 11.5px;
+    letter-spacing: 2.5px; color: var(--accent);
+    text-transform: uppercase; margin-bottom: 16px;
+  }
+  .lp-hero h1 {
+    font-family: var(--font-display);
+    font-size: clamp(44px, 5.4vw, 68px);
+    line-height: 1; text-transform: uppercase; letter-spacing: .5px; margin: 0;
+  }
+  .lp-hero h1 .hl { color: var(--accent); }
+  .lp-hero .sub { color: var(--muted); font-size: 16.5px; line-height: 1.65; max-width: 520px; margin: 22px 0 30px; }
+  .lp-hero .sub b { color: var(--ink); }
+  .lp-hero .cta-row { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+  .lp-hero .ghost-link { color: var(--ink); text-decoration: none; font-weight: 600; font-size: 14px; border-bottom: 2px solid var(--accent); padding-bottom: 2px; }
+  .lp-hero .fine {
+    font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 1.5px;
+    color: var(--faint); margin-top: 26px; text-transform: uppercase;
+  }
+
+  .hero-card-wrap { position: relative; justify-self: center; }
+  .hero-card-shadow { position: absolute; inset: 14px -14px -14px 14px; background: #e3dccb; border: 1px solid var(--border); transform: rotate(3deg); }
+  .hero-card { position: relative; width: 400px; max-width: 100%; background: var(--panel); border: 1px solid var(--border); box-shadow: 0 18px 50px rgba(28,26,22,.18); transform: rotate(-1.5deg); }
+  .hero-card .clap { height: 14px; background: repeating-linear-gradient(-55deg, var(--ink) 0 11px, var(--panel) 11px 22px); }
+  .hero-card .in { padding: 22px 24px; }
+  .hero-card .meta { display: flex; justify-content: space-between; border-bottom: 1px dashed var(--border2); padding-bottom: 10px; margin-bottom: 14px; font-family: var(--font-mono); font-size: 10px; letter-spacing: 2px; color: var(--faint); }
+  .hero-card .meta b { color: var(--accent); font-weight: 400; }
+  .hero-card h4 { font-family: var(--font-display); font-size: 19px; line-height: 1.15; margin: 0 0 14px; text-transform: uppercase; }
+  .hero-card .hook { display: flex; gap: 9px; margin-bottom: 7px; font-size: 12.5px; line-height: 1.5; color: var(--ink2); }
+  .hero-card .hook .hn { font-family: var(--font-mono); font-size: 10px; color: var(--accent); font-weight: 700; padding-top: 2px; }
+  .hero-card .hook.dim, .hero-card .hook.dim .hn { color: var(--faint); font-style: italic; }
+  .hero-card .bodysnip { border-left: 3px solid var(--accent); background: var(--accent-soft); padding: 10px 14px; font-size: 12px; line-height: 1.6; color: var(--ink2); margin-bottom: 12px; }
+  .hero-card .foot { display: flex; justify-content: space-between; align-items: center; }
+  .hero-card .foot .lbl { font-family: var(--font-mono); font-size: 9.5px; letter-spacing: 1.5px; color: var(--faint); }
+  .stamp {
+    transform: rotate(-6deg); border: 2px solid var(--accent); color: var(--accent);
+    font-family: var(--font-mono); font-weight: 700; font-size: 10px; letter-spacing: 2px; padding: 4px 9px;
+  }
+
+  .lp-marquee { background: var(--ink); overflow: hidden; }
+  .lp-marquee .track { display: flex; width: max-content; animation: marquee 22s linear infinite; padding: 12px 0; }
+  .lp-marquee span { font-family: var(--font-mono); font-size: 13px; letter-spacing: 3px; color: #efe9dc; white-space: nowrap; }
+
+  .lp-section { max-width: 1240px; margin: 0 auto; padding: 84px 60px 70px; scroll-margin-top: 70px; }
+  .lp-section h2 {
+    font-family: var(--font-display);
+    font-size: clamp(30px, 3.6vw, 44px);
+    line-height: 1.05; text-transform: uppercase; margin: 0; max-width: 720px;
+  }
+  .lp-section h2 .hl { color: var(--accent); }
+  .lp-section .sub { color: var(--muted); font-size: 15px; line-height: 1.65; max-width: 600px; margin: 16px 0 0; }
+
+  .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; margin-top: 38px; }
+  .step { background: var(--panel); color: var(--ink); border: 1px solid var(--border); padding: 24px; transition: all .18s; cursor: default; }
+  .step:hover { background: var(--ink); color: #efe9dc; border-color: var(--ink); transform: translateY(-3px); box-shadow: 6px 6px 0 var(--accent); }
+  .step .head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+  .step .num { font-family: var(--font-display); font-size: 34px; color: var(--accent); }
+  .step .tag { font-family: var(--font-mono); font-size: 9.5px; letter-spacing: 2px; opacity: .5; }
+  .step h5 { font-weight: 700; font-size: 16.5px; margin: 10px 0 8px; font-family: var(--font-ui); }
+  .step p { font-size: 13.5px; line-height: 1.6; opacity: .65; margin: 0; }
+
+  .lp-format { background: var(--ink); color: #efe9dc; }
+  .lp-format .in { max-width: 1240px; margin: 0 auto; padding: 84px 60px; display: grid; grid-template-columns: 1fr 1fr; gap: 56px; align-items: center; scroll-margin-top: 70px; }
+  .lp-format h2 { font-family: var(--font-display); font-size: clamp(30px, 3.6vw, 44px); line-height: 1.05; text-transform: uppercase; margin: 0; }
+  .lp-format h2 .hl { color: var(--accent); }
+  .lp-format .sub { color: #a49c8d; font-size: 15px; line-height: 1.7; max-width: 440px; margin: 20px 0 0; }
+  .lp-format .stats { display: flex; gap: 26px; margin-top: 28px; }
+  .lp-format .stats b { display: block; font-family: var(--font-display); font-size: 30px; color: var(--accent); font-weight: 400; }
+  .lp-format .stats span { font-family: var(--font-mono); font-size: 10px; letter-spacing: 1.5px; color: var(--faint); }
+  .fmt-hooks { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .fmt-hooks div { border: 1px solid #3d3a33; background: #26231d; padding: 10px 13px; font-family: var(--font-mono); font-size: 11px; color: #c9c1b1; }
+  .fmt-line { width: 1px; height: 20px; background: var(--accent); margin: 2px auto; }
+  .fmt-body { border: 1px solid var(--accent); background: rgba(179,84,30,.08); padding: 14px 18px; display: flex; align-items: baseline; gap: 14px; justify-content: space-between; }
+  .fmt-body .lbl { font-family: var(--font-mono); font-size: 10px; letter-spacing: 2px; color: var(--accent); white-space: nowrap; }
+  .fmt-body p { font-size: 13px; line-height: 1.6; color: #e0d9c8; margin: 0; }
+  .fmt-vis { border: 1px dashed var(--muted); padding: 12px 18px; font-family: var(--font-mono); font-size: 11px; letter-spacing: 1px; color: var(--faint); }
+
+  .lp-frames { display: flex; gap: 16px; justify-content: center; }
+  .lp-frames .frame {
+    width: 180px; height: 320px; border: 1.5px dashed var(--border2); border-radius: 14px;
+    display: flex; align-items: center; justify-content: center; text-align: center;
+    font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 1px; color: var(--faint);
+    background: repeating-linear-gradient(-45deg, transparent 0 10px, rgba(28,26,22,.025) 10px 20px), var(--panel);
+  }
+  .lp-frames .frame:nth-child(1) { transform: rotate(-2deg); }
+  .lp-frames .frame:nth-child(2) { margin-top: 26px; }
+  .lp-frames .frame:nth-child(3) { transform: rotate(2deg); }
+  .lp-two { display: grid; grid-template-columns: .9fr 1.1fr; gap: 56px; align-items: center; }
+
+  .lp-footer { background: var(--ink); color: #efe9dc; }
+  .lp-footer .clap { height: 16px; background: repeating-linear-gradient(-55deg, var(--accent) 0 14px, var(--ink) 14px 28px); }
+  .lp-footer .in { max-width: 1240px; margin: 0 auto; padding: 70px 60px 60px; text-align: center; }
+  .lp-footer h2 { font-family: var(--font-display); font-size: clamp(38px, 5vw, 60px); line-height: 1; text-transform: uppercase; margin: 0; }
+  .lp-footer .sub { color: #a49c8d; font-size: 15px; margin: 16px 0 30px; }
+  .lp-footer .btn-flame { box-shadow: 4px 4px 0 #efe9dc; }
+  .lp-footer .btn-flame:hover { box-shadow: 5px 5px 0 #efe9dc; }
+  .lp-footer .fine { font-family: var(--font-mono); font-size: 10px; letter-spacing: 2px; color: var(--muted); margin-top: 44px; text-transform: uppercase; }
+
+  /* ============================================================
+     AUTH
+     ============================================================ */
+  .auth-screen {
+    min-height: 100vh; display: flex;
+    align-items: center; justify-content: center;
+    padding: 28px 18px;
+    background: repeating-linear-gradient(0deg, transparent, transparent 31px, rgba(28,26,22,.04) 31px, rgba(28,26,22,.04) 32px), var(--paper);
+  }
+  .auth-wrap { width: 100%; max-width: 430px; animation: rise .3s ease; }
+  .auth-back {
+    background: none; border: none; cursor: pointer; padding: 0; margin-bottom: 18px;
+    font-family: var(--font-mono); font-size: 11px; letter-spacing: 1.5px; color: var(--faint);
+  }
+  .auth-back:hover { color: var(--ink); }
+  .auth-wrap .brand { display: flex; align-items: center; gap: 11px; justify-content: center; margin-bottom: 8px; }
+  .auth-tag {
+    font-family: var(--font-mono); font-size: 10.5px;
+    text-transform: uppercase; letter-spacing: 2px;
+    color: var(--faint); text-align: center; margin: 0 0 24px;
+  }
+  .auth-card { background: var(--panel); border: 1px solid var(--border); box-shadow: 6px 6px 0 rgba(28,26,22,.12); }
+  .auth-card .clap { height: 12px; background: repeating-linear-gradient(-55deg, var(--ink) 0 10px, var(--panel) 10px 20px); }
+  .auth-card .in { padding: 26px; }
+  .auth-tabs { display: flex; gap: 6px; padding: 5px; background: var(--paper); border: 1px solid var(--border); margin-bottom: 22px; }
+  .auth-tabs button {
+    flex: 1; border: none; background: none; color: var(--muted);
+    padding: 10px 12px; font-family: var(--font-ui); font-weight: 600; font-size: 13.5px; cursor: pointer;
+  }
+  .auth-tabs button:hover { color: var(--ink); transform: none; box-shadow: none; }
+  .auth-tabs button.active { background: var(--ink); color: #efe9dc; font-weight: 700; }
+  .auth-field { display: block; margin-bottom: 14px; }
+  .auth-field.hidden { display: none; }
+  .auth-field span {
+    display: block; font-family: var(--font-mono); font-size: 10.5px;
+    text-transform: uppercase; letter-spacing: 1.5px;
+    color: var(--muted); margin-bottom: 6px;
+  }
+  .auth-field input { width: 100%; }
+  .auth-error {
+    background: var(--accent-soft); border: 1px solid var(--accent);
+    color: var(--ink); padding: 10px 14px; font-size: 13.5px; margin-bottom: 14px;
+  }
+  #auth-submit { width: 100%; margin-top: 4px; }
+  .auth-switch { text-align: center; color: var(--muted); font-size: 13.5px; margin: 18px 0 0; }
+  .linklike {
+    background: none; border: none; padding: 0; color: var(--accent);
+    font-size: inherit; font-weight: 700; text-decoration: underline; cursor: pointer; font-family: var(--font-ui);
+  }
+  .linklike:hover { transform: none; box-shadow: none; }
+  .auth-note {
+    text-align: center; color: var(--faint);
+    font-family: var(--font-mono); font-size: 11px; margin-top: 18px; line-height: 1.7;
+  }
+
+  /* ============================================================
+     APP SHELL
+     ============================================================ */
+  .app { display: flex; min-height: 100vh; }
+  .sidebar {
+    width: 236px; flex-shrink: 0;
+    background: var(--ink); color: #efe9dc;
+    display: flex; flex-direction: column;
+    position: sticky; top: 0; height: 100vh;
+  }
+  .sidebar .clap { height: 12px; background: repeating-linear-gradient(-55deg, var(--accent) 0 10px, var(--ink) 10px 20px); flex-shrink: 0; }
+  .sidebar .in { padding: 22px 18px 20px; display: flex; flex-direction: column; flex: 1; min-height: 0; }
+  .sidebar .brand { display: flex; align-items: center; gap: 10px; }
+  .sidebar .mark { width: 28px; height: 28px; }
+  .brand-tag {
+    font-family: var(--font-mono); font-size: 9.5px;
+    text-transform: uppercase; letter-spacing: 1.8px;
+    color: var(--faint); margin: 9px 0 26px; line-height: 1.7;
+  }
+  main { flex: 1; min-width: 0; padding: 42px 46px 110px; max-width: 1120px;
+    background: repeating-linear-gradient(0deg, transparent, transparent 31px, rgba(28,26,22,.04) 31px, rgba(28,26,22,.04) 32px);
+  }
+
+  /* ------- nav tabs ------- */
+  #tabs { display: flex; flex-direction: column; gap: 2px; }
+  #tabs button {
+    display: flex; align-items: center; gap: 10px; width: 100%;
+    background: none; border: none; border-left: 3px solid transparent;
+    padding: 10px 11px; color: #a49c8d;
+    font-family: var(--font-ui); font-size: 13.5px;
+    cursor: pointer; transition: all .12s; text-align: left; box-shadow: none;
+  }
+  #tabs button .num { font-family: var(--font-mono); font-size: 11px; color: var(--muted); }
+  #tabs button .lbl { flex: 1; }
+  #tabs button .state { font-family: var(--font-mono); font-size: 10px; color: transparent; }
+  #tabs button .state.done { color: var(--accent); }
+  #tabs button .state.done::after { content: "✓"; }
+  #tabs button:hover { color: #efe9dc; background: rgba(239,233,220,.08); transform: none; }
+  #tabs button.active { color: #efe9dc; background: rgba(239,233,220,.1); border-left-color: var(--accent); font-weight: 700; }
+  #tabs button.active .num { color: var(--accent); }
+
+  .side-foot { margin-top: auto; display: flex; flex-direction: column; gap: 10px; }
+  .pill {
+    font-family: var(--font-mono); font-size: 9.5px; letter-spacing: 1px; text-transform: uppercase;
+    color: #c9e0a8; border: 1px dashed var(--muted); padding: 7px 10px;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .pill.empty { color: var(--faint); }
+  .engine-line { font-family: var(--font-mono); font-size: 9px; color: var(--muted); letter-spacing: .5px; }
+
+  /* ------- type ------- */
+  main .kicker { font-size: 11px; margin-bottom: 10px; }
+  h1 {
+    font-family: var(--font-display);
+    font-size: clamp(30px, 3.6vw, 42px);
+    line-height: 1.05; margin: 0 0 12px; letter-spacing: .2px;
+    text-transform: uppercase; text-wrap: balance;
+  }
+  .hl { color: var(--accent); }
+  h2 { font-family: var(--font-display); font-size: clamp(19px, 3vw, 22px); margin: 0 0 8px; text-transform: uppercase; }
+  h3 {
+    font-family: var(--font-mono); font-size: 10.5px;
+    text-transform: uppercase; letter-spacing: 1.8px;
+    color: var(--muted); margin: 22px 0 12px;
+    display: flex; align-items: center; gap: 10px; font-weight: 400;
+  }
+  h3::after { content: ""; flex: 1; height: 1px; background: var(--border); order: 2; }
+  h3 .copy, h3 button { order: 3; }
+  .sub { color: var(--muted); margin: 0 0 24px; max-width: 640px; font-size: 15px; line-height: 1.65; }
+  .sub b { color: var(--ink); }
+  code {
+    font-family: var(--font-mono); font-size: 12.5px;
+    background: var(--panel); border: 1px solid var(--border);
+    padding: 1px 7px; color: var(--accent);
+  }
+  .mono-label {
+    font-family: var(--font-mono); font-size: 11px;
+    text-transform: uppercase; letter-spacing: 1.5px; color: var(--muted);
+  }
+  .muted { color: var(--muted); font-size: 13px; }
+
+  .tab { display: none; animation: rise .25s ease; }
+  .tab.active { display: block; }
+
+  /* ------- inputs ------- */
+  textarea {
+    width: 100%; min-height: 220px;
+    background: var(--panel); color: var(--ink);
+    border: 1px solid var(--border);
+    padding: 18px; font-family: var(--font-mono); font-size: 13px; line-height: 1.7;
+    resize: vertical; margin-bottom: 14px;
+    transition: border-color .15s, box-shadow .15s;
+  }
+  input[type="text"], input[type="email"], input[type="password"], input[type="number"] {
+    background: var(--panel2); color: var(--ink);
+    border: 1px solid var(--border);
+    padding: 11px 14px; font-family: var(--font-ui); font-size: 14px;
+    transition: border-color .15s, box-shadow .15s;
+  }
+  textarea:focus, input:focus {
+    outline: none; border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-soft);
+  }
+  textarea::placeholder, input::placeholder { color: var(--faint); }
+  input[type="number"] {
+    width: 66px; text-align: center;
+    font-family: var(--font-mono); font-weight: 700; font-size: 16px; color: var(--accent);
+  }
+  input.full { width: 100%; margin-bottom: 12px; }
+  #trend-topic, #topic-new { flex: 1; min-width: 200px; }
+
+  .dropzone {
+    display: inline-flex; align-items: center; gap: 10px;
+    border: 1.5px dashed var(--border2);
+    padding: 11px 18px; color: var(--muted);
+    font-family: var(--font-mono); font-size: 11.5px;
+    cursor: pointer; transition: all .15s;
+  }
+  .dropzone:hover { border-color: var(--accent); color: var(--ink); background: var(--accent-soft); }
+  .dropzone.filled { border-style: solid; border-color: var(--green); color: var(--green); background: var(--green-soft); }
+  .dz-icon { font-size: 15px; }
+  .dropzone.wide { flex: 1; }
+
+  .counter {
+    font-family: var(--font-mono); font-size: 11.5px; color: var(--faint);
+    border: 1px solid var(--border); border-radius: 999px; padding: 6px 13px;
+  }
+  .counter.ready { color: var(--green); border-color: var(--green); }
+
+  /* ------- buttons ------- */
+  button {
+    background: var(--panel); color: var(--ink);
+    border: 1.5px solid var(--ink);
+    padding: 10px 18px; font-family: var(--font-ui); font-size: 14px; font-weight: 600;
+    cursor: pointer; transition: all .12s; white-space: nowrap;
+  }
+  button:hover { transform: translateY(-1px); box-shadow: 2px 2px 0 var(--ink); }
+  button:active { transform: translateY(0); box-shadow: none; }
+  button:disabled { opacity: .5; cursor: wait; transform: none; box-shadow: none; }
+  button.primary {
+    background: var(--ink); border-color: var(--ink); color: #efe9dc; font-weight: 700;
+    box-shadow: 3px 3px 0 var(--accent);
+  }
+  button.primary:hover { transform: translate(-1px,-1px); box-shadow: 4px 4px 0 var(--accent); }
+  button.flame { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 700; box-shadow: 3px 3px 0 var(--ink); }
+  button.flame:hover { transform: translate(-1px,-1px); box-shadow: 4px 4px 0 var(--ink); }
+  button.big { padding: 13px 26px; font-size: 15px; }
+
+  .row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin: 12px 0 18px; }
+  .spacer { flex: 1; }
+  .divider-v { width: 1px; height: 26px; background: var(--border2); }
+  .panel { background: var(--panel); border: 1px solid var(--border); padding: 16px 18px; }
+
+  /* ------- cards ------- */
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--ink);
+    box-shadow: 5px 5px 0 rgba(28,26,22,.15);
+    padding: 24px; margin: 18px 0;
+    animation: rise .3s ease;
+  }
+  .hidden { display: none; }
+  .profile-card { position: relative; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 18px; margin: 14px 0 6px; }
+  .grid2 > div { padding: 11px 13px; background: rgba(28,26,22,.03); border-left: 2px solid var(--border); font-size: 13.5px; line-height: 1.45; }
+  .grid2 b {
+    display: block; font-family: var(--font-mono); font-size: 9.5px;
+    text-transform: uppercase; letter-spacing: 1.5px;
+    color: var(--accent); margin-bottom: 4px; font-weight: 700;
+  }
+
+  /* ------- chips ------- */
+  .chips { display: flex; flex-wrap: wrap; gap: 9px; margin-bottom: 22px; min-height: 20px; }
+  .chips.tight { margin-bottom: 8px; }
+  .chip {
+    border-radius: 999px; padding: 9px 17px; font-size: 13.5px; font-weight: 500;
+    background: var(--panel); border: 1.5px solid var(--border2); color: var(--muted);
+    transition: all .12s; box-shadow: none;
+  }
+  .chip:hover { border-color: var(--ink); transform: translateY(-2px); box-shadow: none; }
+  .chip.on { background: var(--ink); border-color: var(--ink); color: #efe9dc; font-weight: 700; }
+  .chip.sm { padding: 6px 13px; font-size: 12.5px; }
+
+  /* ------- category stamps ------- */
+  .cat {
+    display: inline-block; font-family: var(--font-mono);
+    font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;
+    padding: 2px 8px; white-space: nowrap;
+    border: 1px solid var(--border2); color: var(--muted); background: none;
+  }
+  .cat[data-cat="AI"] { color: var(--c-ai); border-color: var(--c-ai); }
+  .cat[data-cat="Tech"] { color: var(--c-tech); border-color: var(--c-tech); }
+  .cat[data-cat="Automation"] { color: var(--c-auto); border-color: var(--c-auto); }
+  .cat[data-cat="AI Agents"] { color: var(--c-agents); border-color: var(--c-agents); }
+  .cat[data-cat="Robotics"] { color: var(--c-robot); border-color: var(--c-robot); }
+  .cat[data-cat="Future Tech"] { color: var(--c-future); border-color: var(--c-future); }
+
+  a { color: var(--c-tech); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  /* ------- trend scene strips ------- */
+  .scene-list { display: flex; flex-direction: column; gap: 14px; }
+  .scene {
+    background: var(--panel); border: 1px solid var(--border);
+    box-shadow: 0 1px 0 var(--border);
+    display: flex; transition: all .15s; animation: rise .3s ease;
+  }
+  .scene:hover { border-color: var(--ink); box-shadow: 4px 4px 0 rgba(28,26,22,.15); }
+  .scene-num {
+    width: 64px; flex-shrink: 0; border-right: 1px dashed var(--border2);
+    display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 16px 0;
+  }
+  .scene-num span { font-family: var(--font-mono); font-size: 9px; color: var(--faint); letter-spacing: 1px; }
+  .scene-num b { font-family: var(--font-display); font-size: 22px; font-weight: 400; }
+  .scene-body { flex: 1; min-width: 0; padding: 16px 20px; }
+  .scene-head { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
+  .scene-head b { font-size: 15.5px; }
+  .scene-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 20px; }
+  .scene-grid .fld, .scene-foot .fld {
+    display: block; font-family: var(--font-mono); font-size: 9px;
+    letter-spacing: 1.5px; color: var(--accent); margin-bottom: 2px;
+  }
+  .scene-foot .fld { display: inline; }
+  .scene-grid p { font-size: 12.5px; color: var(--ink2); line-height: 1.5; margin: 0; }
+  .scene-foot { display: flex; align-items: center; gap: 16px; margin-top: 12px; flex-wrap: wrap; font-size: 12px; color: var(--muted); }
+  .scene-foot .links { font-family: var(--font-mono); font-size: 11px; }
+  .scene-act { align-self: center; margin-right: 18px; flex-shrink: 0; }
+  .scene-act .mk {
+    border: 1.5px solid var(--ink); background: var(--panel);
+    font-family: var(--font-mono); font-size: 11px; font-weight: 700; letter-spacing: 1px;
+    padding: 9px 16px;
+  }
+  .scene-act .mk:hover { background: var(--ink); color: #efe9dc; transform: none; box-shadow: none; }
+
+  /* ------- loading ------- */
+  .loading {
+    border: 1.5px dashed var(--accent); background: var(--accent-soft);
+    padding: 16px 20px; margin-bottom: 20px;
+    color: var(--accent); font-family: var(--font-mono); font-size: 12px;
+  }
+  .loading.hidden { display: none; }
+  .loading .head { display: flex; align-items: center; gap: 12px; letter-spacing: 2px; font-weight: 700; }
+  .loading .stage-line { letter-spacing: 1px; margin-top: 10px; animation: rec 1.1s infinite; }
+  .eq { display: inline-flex; align-items: flex-end; gap: 3px; height: 18px; }
+  .eq i { width: 4px; height: 16px; background: var(--accent); animation: eq .8s ease-in-out infinite; transform-origin: bottom; }
+  .eq i:nth-child(2) { animation-delay: .12s; }
+  .eq i:nth-child(3) { animation-delay: .24s; }
+  .eq i:nth-child(4) { animation-delay: .36s; }
+
+  /* ------- script library ------- */
+  .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 14px; margin-bottom: 26px; }
+  .script-card {
+    text-align: left; padding: 0; overflow: hidden;
+    background: var(--panel); border: 1px solid var(--border);
+    transition: all .15s; display: block; white-space: normal; box-shadow: none;
+  }
+  .script-card .clap { height: 8px; background: repeating-linear-gradient(-55deg, var(--ink) 0 8px, var(--panel) 8px 16px); opacity: .25; }
+  .script-card .in { padding: 15px 17px; }
+  .script-card:hover { border-color: var(--ink); transform: translateY(-3px); box-shadow: 4px 4px 0 rgba(28,26,22,.2); }
+  .script-card b { font-size: 14.5px; display: block; margin-bottom: 7px; line-height: 1.35; }
+  .script-card .meta { font-family: var(--font-mono); font-size: 10px; color: var(--faint); }
+
+  .empty {
+    border: 1.5px dashed var(--border2);
+    padding: 44px 20px; text-align: center; color: var(--faint);
+    font-family: var(--font-mono); font-size: 12.5px; grid-column: 1 / -1;
+  }
+  .empty .big-ico { font-size: 34px; display: block; margin-bottom: 12px; }
+
+  /* ------- script view ------- */
+  .script-view-card { padding: 0; overflow: hidden; }
+  .script-view-card .clap { height: 14px; background: repeating-linear-gradient(-55deg, var(--ink) 0 11px, var(--panel) 11px 22px); }
+  .script-view-card .in { padding: 28px 30px; }
+  .script-meta {
+    font-family: var(--font-mono); font-size: 11px; color: var(--muted);
+    display: flex; gap: 18px; flex-wrap: wrap; margin-bottom: 6px; text-transform: uppercase;
+  }
+  .script-meta .kw { color: var(--accent); }
+  .hook-item {
+    display: flex; gap: 14px; align-items: flex-start;
+    background: rgba(28,26,22,.02);
+    border: 1px solid var(--border3);
+    padding: 13px 16px; margin-bottom: 8px; transition: all .12s;
+  }
+  .hook-item:hover { border-color: var(--accent); transform: translateX(3px); }
+  .hook-item .hnum { font-family: var(--font-display); font-size: 15px; color: var(--accent); min-width: 28px; }
+  .hook-item .htext { flex: 1; line-height: 1.55; font-size: 14px; }
+  .hook-item .copy-one {
+    font-family: var(--font-mono); font-size: 9.5px; padding: 4px 10px;
+    border: 1px solid var(--border2); color: var(--muted); background: none;
+    opacity: 0; transition: opacity .15s;
+  }
+  .hook-item .copy-one:hover { border-color: var(--ink); color: var(--ink); transform: none; box-shadow: none; }
+  .hook-item:hover .copy-one { opacity: 1; }
+  .body-text {
+    line-height: 1.85; font-size: 15px;
+    background: rgba(28,26,22,.02);
+    border-left: 3px solid var(--accent);
+    padding: 20px 24px; max-width: 720px; white-space: pre-line;
+  }
+  .cta-text {
+    line-height: 1.7; font-size: 14.5px;
+    background: var(--green-soft);
+    border-left: 3px solid var(--green);
+    padding: 16px 24px; max-width: 720px;
+  }
+  .copy {
+    font-family: var(--font-mono); font-size: 9.5px; padding: 5px 12px;
+    letter-spacing: 1px; text-transform: uppercase;
+    border: 1px solid var(--ink); background: none;
+  }
+  .copy:hover { background: var(--ink); color: #efe9dc; transform: none; box-shadow: none; }
+
+  .table-scroll { overflow-x: auto; border: 1px solid var(--border); background: var(--panel); }
+  table { border-collapse: collapse; width: 100%; font-size: 13px; }
+  th {
+    font-family: var(--font-mono); font-size: 9.5px;
+    text-transform: uppercase; letter-spacing: 1.5px; color: var(--muted); font-weight: 400;
+    background: var(--paper); text-align: left; padding: 11px 14px;
+    white-space: nowrap; border-bottom: 1px solid var(--border);
+  }
+  td { text-align: left; padding: 12px 14px; border-bottom: 1px dashed var(--border3); vertical-align: top; color: var(--ink2); line-height: 1.5; }
+  tbody tr:last-child td { border-bottom: none; }
+  td:first-child { font-weight: 600; color: var(--ink); }
+
+  .toast {
+    position: fixed; bottom: 24px; right: 24px; z-index: 50;
+    background: var(--ink); border-left: 4px solid var(--green); color: #efe9dc;
+    padding: 13px 18px; font-size: 13.5px; max-width: min(420px, 86vw);
+    box-shadow: 6px 6px 0 rgba(28,26,22,.25);
+    animation: rise .22s ease;
+  }
+  .toast.error { border-left-color: var(--accent); }
+
+  /* ------- account menu ------- */
+  .user-wrap { position: relative; margin-top: 4px; }
+  .user-box {
+    display: flex; align-items: center; gap: 9px; width: 100%;
+    background: rgba(239,233,220,.05); border: 1px solid #3d3a33;
+    padding: 8px 9px; text-align: left; white-space: normal; color: #efe9dc; box-shadow: none;
+  }
+  .user-box:hover { border-color: var(--faint); transform: none; box-shadow: none; }
+  .user-box .caret { color: var(--muted); font-size: 9px; flex-shrink: 0; }
+  .avatar {
+    width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0;
+    display: inline-flex; align-items: center; justify-content: center;
+    background: var(--accent); color: #fff;
+    font-family: var(--font-display); font-size: 12px;
+  }
+  .user-meta { flex: 1; min-width: 0; line-height: 1.25; }
+  .user-meta b { display: block; font-size: 12.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .user-meta span {
+    display: block; font-family: var(--font-mono); font-size: 9px; color: var(--faint);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .user-menu {
+    position: absolute; bottom: calc(100% + 8px); left: 0; right: 0; z-index: 45;
+    background: var(--panel); border: 1px solid var(--ink); color: var(--ink);
+    padding: 5px; box-shadow: 4px 4px 0 rgba(28,26,22,.3);
+  }
+  .user-menu.hidden { display: none; }
+  .user-menu button {
+    display: flex; align-items: center; gap: 10px; width: 100%;
+    background: none; border: none; padding: 9px 11px;
+    font-size: 13px; text-align: left; color: var(--ink); box-shadow: none;
+  }
+  .user-menu button:hover { background: var(--paper); transform: none; box-shadow: none; }
+  .user-menu button .mi { width: 18px; text-align: center; color: var(--muted); }
+  .user-menu hr { border: none; border-top: 1px dashed var(--border2); margin: 5px 4px; }
+  .user-menu .danger { color: var(--accent); font-weight: 600; }
+  .user-menu .danger .mi { color: var(--accent); }
+
+  /* ------- settings modal ------- */
+  .modal-overlay {
+    position: fixed; inset: 0; z-index: 60;
+    background: rgba(28,26,22,.55); backdrop-filter: blur(4px);
+    display: flex; align-items: center; justify-content: center; padding: 20px;
+  }
+  .modal-overlay.hidden { display: none; }
+  .modal {
+    width: 100%; max-width: 540px; max-height: 88vh; overflow-y: auto;
+    background: var(--panel); border: 1px solid var(--ink);
+    box-shadow: 8px 8px 0 rgba(28,26,22,.3); padding: 0;
+    animation: rise .2s ease;
+  }
+  .modal .clap { height: 12px; background: repeating-linear-gradient(-55deg, var(--ink) 0 10px, var(--panel) 10px 20px); }
+  .modal .in { padding: 24px; }
+  .modal-head { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
+  .modal-head .auth-tabs { flex: 1; margin-bottom: 0; }
+  .modal-close { padding: 8px 13px; font-size: 13px; flex-shrink: 0; }
+  .set-pane.hidden { display: none; }
+  .engine-status {
+    font-family: var(--font-mono); font-size: 11px; line-height: 1.6;
+    border: 1px solid var(--border);
+    padding: 10px 14px; margin-bottom: 16px; color: var(--muted);
+  }
+  .engine-status.ok { color: var(--green); border-color: var(--green); background: var(--green-soft); }
+  .engine-status.warn { color: var(--accent); border-color: var(--accent); background: var(--accent-soft); }
+  .key-field {
+    border: 1px solid var(--border);
+    padding: 14px; margin-bottom: 12px; background: rgba(28,26,22,.015);
+  }
+  .key-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 9px; }
+  .key-state { font-family: var(--font-mono); font-size: 10px; color: var(--faint); }
+  .key-state.set { color: var(--green); }
+  .key-row { display: flex; gap: 8px; }
+  .key-row input { flex: 1; min-width: 0; font-family: var(--font-mono); font-size: 13px; }
+  .key-remove { font-family: var(--font-mono); font-size: 10px; padding: 6px 11px; flex-shrink: 0; }
+  .key-remove:hover { border-color: var(--accent); color: var(--accent); }
+  .key-note { margin: 9px 0 0; font-size: 12px; color: var(--muted); line-height: 1.55; }
+  .set-actions { display: flex; justify-content: flex-end; margin-top: 16px; }
+
+  /* ============================================================
+     RESPONSIVE — tablet (<= 980px)
+     ============================================================ */
+  @media (max-width: 980px) {
+    .app { flex-direction: column; }
+    .sidebar { width: 100%; height: auto; position: static; }
+    .sidebar .in { flex-direction: row; align-items: center; flex-wrap: wrap; gap: 6px 14px; padding: 12px 16px; }
+    .brand-tag { display: none; }
+    .side-foot { margin: 0 0 0 auto; flex-direction: row; align-items: center; order: 1; }
+    .side-foot .pill, .side-foot .engine-line { display: none; }
+    .user-wrap { margin-top: 0; }
+    .user-box { width: auto; padding: 5px 6px; gap: 8px; background: none; border: none; }
+    .user-menu { bottom: auto; top: calc(100% + 8px); left: auto; right: 0; min-width: 200px; }
+    .avatar { width: 26px; height: 26px; font-size: 11px; }
+    .user-meta { max-width: 130px; }
+    .user-meta span { display: none; }
+    #tabs { flex-direction: row; overflow-x: auto; flex: 1 1 100%; order: 2; scrollbar-width: none; }
+    #tabs::-webkit-scrollbar { display: none; }
+    #tabs button { width: auto; padding: 9px 12px; flex-shrink: 0; border-left: none; border-bottom: 3px solid transparent; }
+    #tabs button.active { border-bottom-color: var(--accent); }
+    #tabs button .num, #tabs button .state { display: none; }
+    main { padding: 26px 20px 90px; }
+    .grid2 { grid-template-columns: 1fr; }
+    .hook-item .copy-one { opacity: 1; }
+    .lp-hero { grid-template-columns: 1fr; padding: 50px 28px 60px; }
+    .hero-card-wrap { display: none; }
+    .lp-section { padding: 60px 28px 50px; }
+    .lp-format .in { grid-template-columns: 1fr; padding: 60px 28px; gap: 34px; }
+    .lp-two { grid-template-columns: 1fr; gap: 34px; }
+    .steps { grid-template-columns: 1fr 1fr; }
+    .lp-nav { padding: 0 18px; gap: 16px; }
+    .lp-nav a { display: none; }
+  }
+
+  /* ============================================================
+     RESPONSIVE — phone (<= 760px)
+     ============================================================ */
+  @media (max-width: 760px) {
+    .divider-v { display: none; }
+    textarea { min-height: 170px; padding: 14px; }
+    .card { padding: 18px; }
+    .script-view-card { padding: 0; }
+    .script-view-card .in { padding: 18px; }
+    .body-text, .cta-text { padding: 14px 16px; font-size: 14.5px; }
+    .row button.primary, .row button.flame { flex: 1 1 auto; }
+    .dropzone { width: 100%; justify-content: center; }
+    .toast { left: 16px; right: 16px; bottom: 16px; max-width: none; }
+    .scene { flex-direction: column; }
+    .scene-num { flex-direction: row; width: auto; border-right: none; border-bottom: 1px dashed var(--border2); padding: 10px 16px; justify-content: flex-start; align-items: baseline; gap: 8px; }
+    .scene-grid { grid-template-columns: 1fr; }
+    .scene-act { align-self: stretch; margin: 0 16px 16px; }
+    .scene-act .mk { width: 100%; }
+    .steps { grid-template-columns: 1fr; }
+    .lp-frames { flex-wrap: wrap; }
+  }
+  @media (max-width: 430px) {
+    main { padding: 20px 14px 80px; }
+    button.big { width: 100%; }
+    .panel { padding: 13px 14px; }
+    .auth-card .in { padding: 20px 16px; }
+    .user-meta { display: none; }
+  }
+  </style>
+</head>
+<body class="booting">
+  <div class="conn-banner">⚠ engine offline — run <b>npm start</b> in the project folder, then open <b>http://localhost:3040</b></div>
+
+  <!-- ============ LANDING ============ -->
+  <div class="landing" id="landing">
+    <div class="lp-nav">
+      <div class="brand">
+        <div class="mark"><i></i><s></s></div>
+        <span class="brand-name">REEL<em>FORGE</em></span>
+      </div>
+      <div class="spacer"></div>
+      <a href="#rf-how">How it works</a>
+      <a href="#rf-format">The format</a>
+      <a href="#rf-hunt">Trend finder</a>
+      <button class="btn-ink try-btn" type="button">Try it yourself →</button>
+    </div>
+
+    <div class="lp-hero">
+      <div>
+        <div class="kicker">script engine for instagram reels · 10 hooks · one body · your voice</div>
+        <h1>It writes like you.<br /><span class="hl">Or it doesn't write</span><br />at all.</h1>
+        <p class="sub">ReelForge learns your voice from your past reel scripts, hunts X and Reddit for what's blowing up in AI &amp; tech, and hands you a ready-to-shoot script — <b>10 alternative hooks, one common body</b>, and shot-by-shot visual ideas for your editor.</p>
+        <div class="cta-row">
+          <button class="btn-flame try-btn" type="button">Try it yourself — it's your voice →</button>
+          <a class="ghost-link" href="#rf-format">See the format ↓</a>
+        </div>
+        <div class="fine">powered by claude opus 4.8 · research on x.com + reddit · your data stays yours</div>
+      </div>
+      <div class="hero-card-wrap">
+        <div class="hero-card-shadow"></div>
+        <div class="hero-card">
+          <div class="clap"></div>
+          <div class="in">
+            <div class="meta"><span>SCRIPT NO. 014</span><b>≈ 55s SPOKEN</b></div>
+            <h4>OpenAI's agent books flights end-to-end</h4>
+            <div class="hook"><span class="hn">H01</span><span>"An AI just booked a full holiday — and it made a phone call to do it."</span></div>
+            <div class="hook"><span class="hn">H02</span><span>"It doesn't search flights. It calls the airline. Listen to this."</span></div>
+            <div class="hook dim"><span class="hn">+8</span><span>eight more hooks, same body…</span></div>
+            <div class="bodysnip">Here's what actually happened. OpenAI's new agent didn't just compare prices — it picked the flight, filled every form, then <i>phoned the airline</i> to fix a seat clash…</div>
+            <div class="foot">
+              <span class="lbl">VISUALS: 6 BEATS FOR YOUR EDITOR</span>
+              <span class="stamp">IN YOUR VOICE</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="lp-marquee">
+      <div class="track">
+        <span>&nbsp;AI ✦ TECH ✦ AUTOMATION ✦ AI AGENTS ✦ ROBOTICS ✦ FUTURE TECH ✦ 10 HOOKS ✦ ONE BODY ✦ YOUR VOICE ✦&nbsp;</span>
+        <span>&nbsp;AI ✦ TECH ✦ AUTOMATION ✦ AI AGENTS ✦ ROBOTICS ✦ FUTURE TECH ✦ 10 HOOKS ✦ ONE BODY ✦ YOUR VOICE ✦&nbsp;</span>
+      </div>
+    </div>
+
+    <div class="lp-section" id="rf-how">
+      <div class="kicker">the production line</div>
+      <h2>From your old scripts to your next viral reel</h2>
+      <div class="steps">
+        <div class="step">
+          <div class="head"><span class="num">01</span><span class="tag">ONBOARD</span></div>
+          <h5>Teach it your voice</h5>
+          <p>Paste 20+ of your past reel scripts. It decodes your niche, tonality, hook formulas, CTA and structure — then locks your voice in.</p>
+        </div>
+        <div class="step">
+          <div class="head"><span class="num">02</span><span class="tag">TOPICS</span></div>
+          <h5>Pick your beat</h5>
+          <p>Topics arrive pre-selected from your own scripts. Toggle them, add your own — the hunt never leaves your beat.</p>
+        </div>
+        <div class="step">
+          <div class="head"><span class="num">03</span><span class="tag">HOOK DATA</span></div>
+          <h5>Feed it what worked</h5>
+          <p>Upload your hook sheet — views, retention. It learns which hook types and words actually win on your channel.</p>
+        </div>
+        <div class="step">
+          <div class="head"><span class="num">04</span><span class="tag">TREND FINDER</span></div>
+          <h5>Hunt the trend</h5>
+          <p>It scans X and Reddit — last 7–14 days — and returns the moments worth shooting, with receipts, reactions and links.</p>
+        </div>
+        <div class="step">
+          <div class="head"><span class="num">05</span><span class="tag">RESEARCH DUMP</span></div>
+          <h5>Or bring your own</h5>
+          <p>Paste your notes. It keeps what earns a place in a reel, rejects the rest with reasons — and writes from the keepers.</p>
+        </div>
+        <div class="step">
+          <div class="head"><span class="num">06</span><span class="tag">SCRIPTS</span></div>
+          <h5>Shoot the script</h5>
+          <p>10 alternative hooks. One common body. Your CTA, plus shot-by-shot visuals for your editor. Copy, shoot, post.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="lp-format">
+      <div class="in" id="rf-format">
+        <div>
+          <div class="kicker">the format — the core thing</div>
+          <h2>10 hooks.<br />One body.<br /><span class="hl">Zero guessing.</span></h2>
+          <p class="sub">You shoot the body once and test ten different openings against it. Each hook is 7–9 seconds spoken, carries one open loop, and is weighted by your own hook-performance data — so you A/B test your way to the winner.</p>
+          <div class="stats">
+            <div><b>10×</b><span>HOOKS PER SCRIPT</span></div>
+            <div><b>7–9s</b><span>SPOKEN, EACH</span></div>
+            <div><b>1</b><span>COMMON BODY</span></div>
+          </div>
+        </div>
+        <div>
+          <div class="fmt-hooks">
+            <div>H01 · the phone call</div>
+            <div>H02 · 14M views</div>
+            <div>H03 · "looks fake"</div>
+            <div>H04–H10 · …</div>
+          </div>
+          <div class="fmt-line"></div>
+          <div class="fmt-body">
+            <span class="lbl">ONE COMMON BODY</span>
+            <p>Context → escalation → payoff. Shot once — every hook clicks onto it.</p>
+          </div>
+          <div class="fmt-line"></div>
+          <div class="fmt-vis">+ VISUAL IDEAS, BEAT BY BEAT, FOR YOUR EDITOR 🎥</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="lp-section">
+      <div class="lp-two">
+        <div>
+          <div class="kicker">built for the camera, not the desk</div>
+          <h2>Your reels.<br />Your face.<br />Your voice.</h2>
+          <p class="sub">ReelForge never invents a personality. It studies the scripts that already worked for you and writes the next one the same way — same energy, same CTA, same structure. You just hit record.</p>
+        </div>
+        <div class="lp-frames">
+          <div class="frame">reel frame 01<br /><br />(your screenshot here)</div>
+          <div class="frame">reel frame 02<br /><br />(your screenshot here)</div>
+          <div class="frame">reel frame 03<br /><br />(your screenshot here)</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="lp-section" id="rf-hunt" style="padding-top:10px">
+      <div class="kicker">the hunt · x.com + reddit</div>
+      <h2>It finds the moment before your feed does</h2>
+      <p class="sub">Each trending topic arrives as a scene on your call sheet: why it will perform for <i>your</i> audience, the exact viral moment, people's reaction, research links, and a one-click <b>Make script</b>.</p>
+      <div class="scene-list" style="max-width:920px;margin-top:30px">
+        <div class="scene">
+          <div class="scene-num"><span>SCENE</span><b>01</b></div>
+          <div class="scene-body">
+            <div class="scene-head"><b>Claude ran a vending-machine business for 30 days</b><span class="cat" data-cat="AI">AI</span></div>
+            <div class="scene-grid">
+              <div><span class="fld">MAIN VIRAL PART</span><p>The P&amp;L screenshot — it stocked tungsten cubes because a customer asked.</p></div>
+              <div><span class="fld">PEOPLE'S REACTION</span><p>X is meme-ing the cubes; Reddit debates whether it counts as "agentic".</p></div>
+            </div>
+          </div>
+          <div class="scene-act"><button class="mk" type="button" onclick="document.querySelector('.try-btn').click()">✍ MAKE SCRIPT</button></div>
+        </div>
+        <div class="loading" style="margin-bottom:0">
+          <div class="head"><span class="eq"><i></i><i></i><i></i><i></i></span> SCOUTING… reading x.com + reddit, take 1 of 2</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="lp-footer">
+      <div class="clap"></div>
+      <div class="in">
+        <h2>Roll cameras.</h2>
+        <p class="sub">Sign up, paste your old scripts, and get your first 10-hook script in minutes.</p>
+        <button class="btn-flame try-btn" type="button">Try it yourself →</button>
+        <div class="fine">reelforge · production co. / reels dept. · engine claude-opus-4-8 · research x.com + reddit</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ AUTH (login / signup) ============ -->
+  <div class="auth-screen" id="auth-screen">
+    <div class="auth-wrap">
+      <button class="auth-back" id="auth-back" type="button">← BACK TO THE TOUR</button>
+      <div class="brand">
+        <div class="mark" style="width:32px;height:32px"><i></i><s></s></div>
+        <span class="brand-name" style="font-size:24px">REEL<em>FORGE</em></span>
+      </div>
+      <p class="auth-tag">script engine for instagram reels</p>
+
+      <div class="auth-card">
+        <div class="clap"></div>
+        <div class="in">
+          <div class="auth-tabs">
+            <button type="button" id="auth-tab-login" class="active">Log in</button>
+            <button type="button" id="auth-tab-signup">Sign up</button>
+          </div>
+
+          <form id="auth-form" novalidate>
+            <label class="auth-field hidden" id="auth-name-field">
+              <span>Name</span>
+              <input type="text" id="auth-name" autocomplete="name" placeholder="Your name" />
+            </label>
+            <label class="auth-field">
+              <span>Email</span>
+              <input type="email" id="auth-email" autocomplete="email" placeholder="you@example.com" />
+            </label>
+            <label class="auth-field">
+              <span>Password</span>
+              <input type="password" id="auth-password" autocomplete="current-password" placeholder="min. 6 characters" />
+            </label>
+            <div id="auth-error" class="auth-error hidden"></div>
+            <button type="submit" id="auth-submit" class="primary big">Log in →</button>
+          </form>
+
+          <p class="auth-switch">
+            <span id="auth-switch-text">New here?</span>
+            <button type="button" class="linklike" id="auth-switch">Create an account</button>
+          </p>
+        </div>
+      </div>
+
+      <p class="auth-note">your profile · topics · hook data · scripts<br />are saved to your account on this machine</p>
+    </div>
+  </div>
+
+  <div class="app">
+
+    <!-- ============ SIDEBAR ============ -->
+    <aside class="sidebar">
+      <div class="clap"></div>
+      <div class="in">
+        <div class="brand">
+          <div class="mark paper"><i></i><s></s></div>
+          <span class="brand-name">REEL<em>FORGE</em></span>
+        </div>
+        <p class="brand-tag">script engine for<br />instagram reels</p>
+
+        <nav id="tabs">
+          <button data-tab="onboard" class="active">
+            <span class="num">01</span><span class="lbl">Onboard</span><span class="state" id="st-onboard"></span>
+          </button>
+          <button data-tab="topics">
+            <span class="num">02</span><span class="lbl">Topics</span><span class="state" id="st-topics"></span>
+          </button>
+          <button data-tab="hookdata">
+            <span class="num">03</span><span class="lbl">Hook Data</span><span class="state" id="st-hookdata"></span>
+          </button>
+          <button data-tab="trends">
+            <span class="num">04</span><span class="lbl">Trend Finder</span><span class="state"></span>
+          </button>
+          <button data-tab="dump">
+            <span class="num">05</span><span class="lbl">Research Dump</span><span class="state"></span>
+          </button>
+          <button data-tab="scripts">
+            <span class="num">06</span><span class="lbl">Scripts</span><span class="state" id="st-scripts"></span>
+          </button>
+        </nav>
+
+        <div class="side-foot">
+          <div id="status-pill" class="pill">no profile yet</div>
+          <div class="engine-line">ENGINE · CLAUDE-OPUS-4-8</div>
+          <div class="engine-line">RESEARCH · X.COM + REDDIT</div>
+          <div class="user-wrap">
+            <button class="user-box" id="user-menu-btn" title="Account menu">
+              <span class="avatar" id="user-avatar">?</span>
+              <span class="user-meta">
+                <b id="user-name"></b>
+                <span id="user-email"></span>
+              </span>
+              <span class="caret">▾</span>
+            </button>
+            <div class="user-menu hidden" id="user-menu">
+              <button data-menu="profile"><span class="mi">👤</span>Profile</button>
+              <button data-menu="keys"><span class="mi">⚙</span>Settings</button>
+              <button data-menu="keys"><span class="mi">🔑</span>API Keys</button>
+              <hr />
+              <button id="logout-btn" class="danger"><span class="mi">⎋</span>Log out</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- ============ MAIN ============ -->
+    <main>
+
+      <!-- ONBOARD -->
+      <section id="tab-onboard" class="tab active">
+        <div class="kicker">call sheet 01 / teach it who you are</div>
+        <h1>It writes like <span class="hl">you</span>,<br />or it doesn't write at all.</h1>
+        <p class="sub">Paste or upload your past reel scripts — <b>20+ recommended</b> for an accurate profile, but any amount works. Paste them all in one go: separators like <code>---</code> help, but ReelForge identifies each script by itself. It learns your niche, topics, tonality, CTA, hook style, script length and structure.</p>
+
+        <textarea id="onboard-blob" placeholder="HOOK: Sam Altman just...
+BODY: ...
+CTA: ...
+---
+(next script)"></textarea>
+
+        <div class="row">
+          <label class="dropzone" for="onboard-files">
+            <span class="dz-icon">⇪</span>
+            <span id="onboard-files-label">drop files · .txt .docx .xlsx .csv</span>
+          </label>
+          <input type="file" id="onboard-files" multiple accept=".txt,.md,.docx,.csv,.xlsx" hidden />
+          <span id="onboard-count" class="counter">0 scripts detected</span>
+          <span class="spacer"></span>
+          <button id="onboard-go" class="primary big">Analyze my style →</button>
+        </div>
+
+        <div id="onboard-result" class="card profile-card hidden"></div>
+      </section>
+
+      <!-- TOPICS -->
+      <section id="tab-topics" class="tab">
+        <div class="kicker">call sheet 02 / your beat</div>
+        <h1>Pick your <span class="hl">topics</span></h1>
+        <p class="sub">Pre-selected from your scripts. Click to select / deselect. Add your own below. The Trend Finder only hunts inside selected topics.</p>
+
+        <div id="topic-chips" class="chips"></div>
+
+        <div class="row">
+          <input type="text" id="topic-new" placeholder="Add a topic — e.g. AI agents replacing jobs" />
+          <button id="topic-add">+ Add</button>
+          <span class="spacer"></span>
+          <button id="topic-save" class="primary">Save selection</button>
+        </div>
+      </section>
+
+      <!-- HOOK DATA -->
+      <section id="tab-hookdata" class="tab">
+        <div class="kicker">call sheet 03 / what already worked</div>
+        <h1>Feed it your <span class="hl">hook data</span></h1>
+        <p class="sub">Upload a doc or excel of your hook performance data (hooks + views / retention). Every future script's hooks get written with this intelligence.</p>
+
+        <div class="row">
+          <label class="dropzone wide" for="hook-file">
+            <span class="dz-icon">⇪</span>
+            <span id="hook-file-label">drop your hook sheet · .xlsx .csv .docx</span>
+          </label>
+          <input type="file" id="hook-file" accept=".docx,.csv,.xlsx,.xls,.txt,.md" hidden />
+          <button id="hook-go" class="primary big">Analyze hook data →</button>
+        </div>
+
+        <textarea id="hook-text" placeholder="...or paste hook data here (hook, views, retention per line)"></textarea>
+
+        <div id="hook-result" class="card hidden"></div>
+      </section>
+
+      <!-- TRENDS -->
+      <section id="tab-trends" class="tab">
+        <div class="kicker">call sheet 04 / the hunt · x.com + reddit</div>
+        <h1>What's going <span class="hl">viral</span> right now</h1>
+        <p class="sub">Pick the niches to hunt in, then let it find what's blowing up — why it will perform, why it's viral, research links, the viral moment, people's reaction and a CTA angle.</p>
+
+        <div class="panel" style="margin-bottom:16px">
+          <div class="mono-label" style="display:block;margin-bottom:10px">🎯 hunt inside these niches</div>
+          <div id="trend-niches" class="chips tight"></div>
+        </div>
+
+        <div class="panel row" style="margin-top:0">
+          <span class="mono-label">find best</span>
+          <input type="number" id="trend-count" min="1" max="30" value="5" />
+          <span class="mono-label">topics</span>
+          <button id="trend-find" class="flame">⚡ Find trending topics</button>
+          <span class="divider-v"></span>
+          <input type="text" id="trend-topic" placeholder="or research this specific topic..." />
+          <button id="trend-one">Research it →</button>
+        </div>
+
+        <div id="trend-loading" class="loading hidden">
+          <div class="head">
+            <span class="eq"><i></i><i></i><i></i><i></i></span>
+            THE HUNT IS ON — this takes a minute or two
+          </div>
+          <div class="stage-line" id="trend-stage-line">OPENING THE WIRE… connecting to x.com</div>
+        </div>
+        <div id="trend-table-wrap"></div>
+      </section>
+
+      <!-- DUMP -->
+      <section id="tab-dump" class="tab">
+        <div class="kicker">call sheet 05 / bring your own research</div>
+        <h1>Dump it. <span class="hl">Script it.</span></h1>
+        <p class="sub">Paste your research. No fact-checking — it trusts you. It keeps what earns a place in a reel, rejects the rest with reasons, and writes the script from the keepers.</p>
+
+        <input type="text" id="dump-topic" class="full" placeholder="Optional: what's the topic of this research?" />
+        <textarea id="dump-text" placeholder="Paste everything — notes, links, stats, quotes..."></textarea>
+
+        <div class="row">
+          <span class="spacer"></span>
+          <button id="dump-go" class="primary big">Analyze &amp; write script →</button>
+        </div>
+
+        <div id="dump-loading" class="loading hidden">
+          <div class="head">
+            <span class="eq"><i></i><i></i><i></i><i></i></span>
+            CLASSIFYING YOUR RESEARCH AND WRITING…
+          </div>
+        </div>
+        <div id="dump-result"></div>
+      </section>
+
+      <!-- SCRIPTS -->
+      <section id="tab-scripts" class="tab">
+        <div class="kicker">call sheet 06 / the output</div>
+        <h1>Script <span class="hl">library</span></h1>
+        <p class="sub">Every script: 10 hooks, one common body, your CTA, and shot-by-shot visual ideas for your editor.</p>
+        <div id="script-list" class="cards"></div>
+        <div id="script-view"></div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- ============ SETTINGS MODAL (profile · api keys) ============ -->
+  <div class="modal-overlay hidden" id="settings-modal">
+    <div class="modal">
+      <div class="clap"></div>
+      <div class="in">
+        <div class="modal-head">
+          <div class="auth-tabs">
+            <button type="button" id="set-tab-profile" class="active">Profile</button>
+            <button type="button" id="set-tab-keys">API Keys</button>
+          </div>
+          <button type="button" class="modal-close" id="settings-close">✕</button>
+        </div>
+
+        <!-- profile pane -->
+        <div id="set-profile" class="set-pane">
+          <label class="auth-field">
+            <span>Name</span>
+            <input type="text" id="set-name" placeholder="Your name" />
+          </label>
+          <label class="auth-field">
+            <span>Email</span>
+            <input type="text" id="set-email" disabled />
+          </label>
+          <p class="muted" id="set-member-since"></p>
+          <div class="set-actions">
+            <button id="set-profile-save" class="primary">Save profile</button>
+          </div>
+        </div>
+
+        <!-- api keys pane -->
+        <div id="set-keys" class="set-pane hidden">
+          <div class="engine-status" id="engine-status"></div>
+
+          <div class="key-field">
+            <div class="key-head">
+              <span class="mono-label">Claude (Anthropic) API key</span>
+              <span class="key-state" data-state="anthropic">not set</span>
+            </div>
+            <div class="key-row">
+              <input type="password" data-key="anthropic" placeholder="sk-ant-..." autocomplete="off" />
+              <button class="key-remove hidden" data-remove="anthropic">remove</button>
+            </div>
+            <p class="key-note">The main engine — powers style analysis, script writing and X/Reddit trend research. Get one at console.anthropic.com.</p>
+          </div>
+
+          <div class="key-field">
+            <div class="key-head">
+              <span class="mono-label">OpenRouter API key</span>
+              <span class="key-state" data-state="openrouter">not set</span>
+            </div>
+            <div class="key-row">
+              <input type="password" data-key="openrouter" placeholder="sk-or-..." autocomplete="off" />
+              <button class="key-remove hidden" data-remove="openrouter">remove</button>
+            </div>
+            <div class="key-row" style="margin-top:8px">
+              <input type="text" data-key="openrouter_model" placeholder="model (default: anthropic/claude-opus-4.8)" autocomplete="off" />
+              <button class="key-remove hidden" data-remove="openrouter_model">remove</button>
+            </div>
+            <p class="key-note">One key for every model. Used automatically when no Claude key is set (trend research runs through OpenRouter's web plugin).</p>
+          </div>
+
+          <div class="key-field">
+            <div class="key-head">
+              <span class="mono-label">OpenAI (ChatGPT) API key</span>
+              <span class="key-state" data-state="openai">not set</span>
+            </div>
+            <div class="key-row">
+              <input type="password" data-key="openai" placeholder="sk-..." autocomplete="off" />
+              <button class="key-remove hidden" data-remove="openai">remove</button>
+            </div>
+            <p class="key-note">Stored securely for upcoming integrations — not used by the engine yet.</p>
+          </div>
+
+          <div class="key-field">
+            <div class="key-head">
+              <span class="mono-label">X.com API key</span>
+              <span class="key-state" data-state="x">not set</span>
+            </div>
+            <div class="key-row">
+              <input type="password" data-key="x" placeholder="bearer token" autocomplete="off" />
+              <button class="key-remove hidden" data-remove="x">remove</button>
+            </div>
+            <p class="key-note">Stored for upcoming direct X research. Today, trends are researched via the AI engine's own web search — no X key needed.</p>
+          </div>
+
+          <div class="set-actions">
+            <button id="set-keys-save" class="primary">Save keys</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
